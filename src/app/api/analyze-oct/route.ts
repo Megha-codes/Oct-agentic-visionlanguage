@@ -1,20 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
 
-/**
- * IMPORTANT:
- * - Force Node.js runtime (required for Buffer & base64)
- * - Do NOT use Edge runtime here
- */
 export const runtime = "nodejs";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
 
 export async function POST(req: NextRequest) {
   try {
-    // -------- Parse form data --------
     const formData = await req.formData();
     const image = formData.get("image") as File | null;
     const message = (formData.get("message") as string) || "";
@@ -26,7 +15,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // -------- Validate image --------
+    // ---- Validate image ----
     const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
     if (!allowedTypes.includes(image.type)) {
       return NextResponse.json(
@@ -35,61 +24,91 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
-    if (image.size > MAX_SIZE) {
+    if (image.size > 10 * 1024 * 1024) {
       return NextResponse.json(
         { success: false, error: "Image too large (max 10MB)" },
         { status: 400 }
       );
     }
 
-    // -------- Convert image to base64 --------
+    // ---- Convert image to base64 ----
     const buffer = Buffer.from(await image.arrayBuffer());
     const base64Image = buffer.toString("base64");
 
-    // -------- OpenAI Vision Request --------
-    const response = await openai.responses.create({
-      model: "gpt-4o-mini",
-      input: [
-        {
-          role: "system",
-          content:
-            "You are OCTina, an AI assistant specialized in Optical Coherence Tomography (OCT). " +
-            "Analyze OCT scans and explain retinal findings clearly using ophthalmology terminology. " +
-            "Do NOT provide a definitive diagnosis. " +
-            "Always include a medical disclaimer stating that this is an AI-generated educational explanation.",
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is missing");
+    }
+
+    // ---- Gemini Vision Call (FREE) ----
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        {
-          role: "user",
-          content: [
+        body: JSON.stringify({
+          contents: [
             {
-              type: "input_text",
-              text:
-                message ||
-                "Please analyze this OCT scan and explain the retinal findings.",
-            },
-            {
-              type: "input_image",
-              image_url: `data:${image.type};base64,${base64Image}`,
-              detail: "high", // REQUIRED by OpenAI SDK
+              parts: [
+                {
+                  text:
+                    message ||
+                    `Analyze this OCT scan carefully.
+
+Focus on:
+- Retinal thickness
+- Hyporeflective cystoid spaces
+- Intraretinal or subretinal fluid
+- Foveal contour changes
+- Layer distortion
+
+Describe visible findings objectively.
+Do not include medical disclaimers.
+Do not say everything is normal unless clearly visible.`,
+                },
+                {
+                  inline_data: {
+                    mime_type: image.type,
+                    data: base64Image,
+                  },
+                },
+              ],
             },
           ],
-        },
-      ],
-      max_output_tokens: 1200,
-    });
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 1200,
+          },
+        }),
+      }
+    );
 
-    // -------- Return response --------
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(errText);
+    }
+
+    const data = await response.json();
+
+    const analysis =
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "Unable to generate analysis.";
+
     return NextResponse.json({
       success: true,
-      analysis: response.output_text,
+      analysis,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("OCT analysis error:", error);
+
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to analyze OCT scan. Please try again.",
+        error:
+          error?.message ||
+          "Failed to analyze OCT scan. Please try again.",
       },
       { status: 500 }
     );
