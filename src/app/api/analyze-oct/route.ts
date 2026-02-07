@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     // ---- Gemini Vision Call (FREE) ----
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro-vision-latest:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: {
@@ -58,18 +58,23 @@ export async function POST(req: NextRequest) {
                 {
                   text:
                     message ||
-                    `Analyze this OCT scan carefully.
+                    `You are analyzing a retinal OCT B-scan image.
 
-Focus on:
-- Retinal thickness
+First, describe ONLY what you can directly see in the image.
+Do not assume the scan is normal.
+Do not give a diagnosis unless visible abnormalities are present.
+
+Explicitly check for:
 - Hyporeflective cystoid spaces
-- Intraretinal or subretinal fluid
-- Foveal contour changes
-- Layer distortion
+- Retinal thickening
+- Subretinal fluid
+- Irregular foveal contour
+- Hyperreflective lesions
 
-Describe visible findings objectively.
-Do not include medical disclaimers.
-Do not say everything is normal unless clearly visible.`,
+If abnormalities are present, describe them.
+If none are visible, explicitly state that the scan appears normal.
+
+Avoid generic medical statements.`,
                 },
                 {
                   inline_data: {
@@ -81,8 +86,8 @@ Do not say everything is normal unless clearly visible.`,
             },
           ],
           generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 1200,
+            temperature: 0.05,
+            maxOutputTokens: 800,
           },
         }),
       }

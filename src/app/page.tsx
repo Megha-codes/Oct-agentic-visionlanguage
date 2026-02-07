@@ -1,6 +1,10 @@
 'use client'
 
-import { useState, useRef } from 'react'
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -10,13 +14,30 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Upload, Send, Bot, User, Eye, FileImage, Menu, MessageSquare, Paperclip } from 'lucide-react'
+
+import {
+  Upload,
+  Send,
+  Bot,
+  User,
+  Eye,
+  FileImage,
+  Menu,
+  MessageSquare,
+  Paperclip,
+} from 'lucide-react'
+
 import Navbar from '@/components/navbar'
 import Footer from '@/components/footer'
 import ChatSidebar from '@/components/chat-sidebar'
-import HeroSection from '@/components/hero-section'
-import FeaturesSection from '@/components/features-section'
-import HowItWorksSection from '@/components/how-it-works-section'
+
+// ⛔ Disable SSR for animated / random components (hydration fix)
+const HeroSection = dynamic(() => import('@/components/hero-section'), {
+  ssr: false,})
+const FeaturesSection = dynamic(() => import('@/components/features-section'), {
+  ssr: false,})
+const HowItWorksSection = dynamic(() => import('@/components/how-it-works-section'), {
+  ssr: false,})
 
 interface Message {
   id: string
@@ -27,14 +48,23 @@ interface Message {
 }
 
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'bot',
-      content: 'Hello! I\'m OCTina, your advanced OCT scan analysis assistant. I\'m here to provide detailed retinal diagnostics and insights. Please upload an OCT scan image and I\'ll give you a comprehensive analysis.',
-      timestamp: new Date()
+  const [messages, setMessages] = useState<Message[]>([])
+  const [initialized, setInitialized] = useState(false)
+
+  useEffect(() => {
+    if (!initialized) {
+      setMessages([
+        {
+          id: '1',
+          type: 'bot',
+          content: 'Hello! I\'m OCTina, your advanced OCT scan analysis assistant. I\'m here to provide detailed retinal diagnostics and insights. Please upload an OCT scan image and I\'ll give you a comprehensive analysis.',
+          timestamp: new Date(),
+        },
+      ])
+      setInitialized(true)
     }
-  ])
+  }, [initialized])
+
   const [inputMessage, setInputMessage] = useState('')
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -184,7 +214,13 @@ export default function Home() {
   }
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    return date
+      .toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      })
+    .toUpperCase()
   }
 
   return (
@@ -202,13 +238,13 @@ export default function Home() {
         <HowItWorksSection />
       
         {/* Chatbot Demo Section */}
-        <section className="py-20 bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-purple-900 dark:to-pink-900">
+        <section className="py-20 bg-linear-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-purple-900 dark:to-pink-900">
           <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <Badge variant="outline" className="mb-4 bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700">
               Try It Now
             </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               Experience OCTina
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
@@ -230,14 +266,14 @@ export default function Home() {
 
             {/* Main Chat Area */}
             <div className="lg:col-span-6">
-              <Card className="h-[700px] flex flex-col shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+              <Card className="h-175 flex flex-col shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
                 <CardHeader className="pb-3 border-b border-gray-200 dark:border-gray-700">
                   <CardTitle className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 bg-linear-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
                       <Bot className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <div className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      <div className="text-lg font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                         The OCTina Chatbot
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -262,10 +298,10 @@ export default function Home() {
                             }`}
                           >
                             <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                              className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                                 message.type === 'user'
-                                  ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white'
-                                  : 'bg-gradient-to-br from-green-500 to-teal-500 text-white'
+                                  ? 'bg-linear-to-br from-purple-500 to-pink-500 text-white'
+                                  : 'bg-linear-to-br from-green-500 to-teal-500 text-white'
                               }`}
                             >
                               {message.type === 'user' ? (
@@ -277,7 +313,7 @@ export default function Home() {
                             <div
                               className={`rounded-2xl p-4 ${
                                 message.type === 'user'
-                                  ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white'
+                                  ? 'bg-linear-to-br from-purple-500 to-pink-500 text-white'
                                   : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
                               }`}
                             >
@@ -316,7 +352,7 @@ export default function Home() {
                       {isAnalyzing && (
                         <div className="flex gap-3 justify-start">
                           <div className="flex gap-2 max-w-[80%]">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-green-500 to-teal-500 text-white">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-linear-to-br from-green-500 to-teal-500 text-white">
                               <Bot className="h-4 w-4" />
                             </div>
                             <div className="rounded-2xl p-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white">
@@ -365,7 +401,7 @@ export default function Home() {
                         <Button
                           onClick={handleSendMessage}
                           disabled={isAnalyzing || (!inputMessage.trim() && !selectedImage)}
-                          className="self-end bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl transition-all duration-200 transform hover:scale-105"
+                          className="self-end bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl transition-all duration-200 transform hover:scale-105"
                         >
                           <Send className="h-4 w-4" />
                         </Button>

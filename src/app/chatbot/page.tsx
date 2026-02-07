@@ -211,10 +211,11 @@ export default function ChatbotPage() {
       minute: '2-digit',
       hour12: true 
     })
+    .toUpperCase()
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-purple-900 dark:to-pink-900">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-purple-900 dark:to-pink-900">
       <Navbar />
       
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -271,14 +272,14 @@ export default function ChatbotPage() {
 
           {/* Main Chat Area */}
           <div className="lg:col-span-6">
-            <Card className="h-[700px] flex flex-col shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+            <Card className="h-[75vh] flex flex-col shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
               <CardHeader className="pb-3 border-b border-gray-200 dark:border-gray-700">
                 <CardTitle className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-linear-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
                     <Bot className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <div className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    <div className="text-lg font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                       OCTina
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -288,8 +289,8 @@ export default function ChatbotPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
-                <ScrollArea className="flex-1 px-4 pb-4 h-full overflow-auto">
-                  <div className="space-y-4 pt-4 max-w-full">
+                <ScrollArea className="flex-1 px-4 pb-4 h-full">
+                  <div className="space-y-4 pt-4 max-w-full min-h-0">
                     {messages.map((message) => (
                       <div
                         key={message.id}
@@ -303,10 +304,10 @@ export default function ChatbotPage() {
                           }`}
                         >
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                               message.type === 'user'
-                                ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white'
-                                : 'bg-gradient-to-br from-green-500 to-teal-500 text-white'
+                                ? 'bg-linear-to-br from-purple-500 to-pink-500 text-white'
+                                : 'bg-linear-to-br from-green-500 to-teal-500 text-white'
                             }`}
                           >
                             {message.type === 'user' ? (
@@ -318,7 +319,7 @@ export default function ChatbotPage() {
                           <div
                             className={`rounded-2xl p-4 max-w-full overflow-hidden ${
                               message.type === 'user'
-                                ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white'
+                                ? 'bg-linear-to-br from-purple-500 to-pink-500 text-white'
                                 : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
                             }`}
                           >
@@ -331,7 +332,7 @@ export default function ChatbotPage() {
                                 />
                               </div>
                             )}
-                            <div className="whitespace-pre-wrap text-sm leading-relaxed break-words overflow-wrap-anywhere max-w-full">
+                            <div className="whitespace-pre-wrap text-sm leading-relaxed max-h-80 overflow-y-auto pr-2">
                               {message.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').split('\n').map((line, i) => (
                                 <div key={i} dangerouslySetInnerHTML={{ __html: line }} className="mb-2" />
                               ))}
@@ -350,7 +351,7 @@ export default function ChatbotPage() {
                     {isAnalyzing && (
                       <div className="flex gap-3 justify-start">
                         <div className="flex gap-2 max-w-[80%]">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-green-500 to-teal-500 text-white">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-linear-to-br from-green-500 to-teal-500 text-white">
                             <Bot className="h-4 w-4" />
                           </div>
                           <div className="rounded-2xl p-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white">
@@ -384,7 +385,7 @@ export default function ChatbotPage() {
                     <Button
                       onClick={handleSendMessage}
                       disabled={isAnalyzing || (!inputMessage.trim() && !selectedImage)}
-                      className="self-end bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl transition-all duration-200 transform hover:scale-105"
+                      className="self-end bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl transition-all duration-200 transform hover:scale-105"
                     >
                       <Send className="h-4 w-4" />
                     </Button>
@@ -415,12 +416,12 @@ export default function ChatbotPage() {
                     Click to upload OCT scan
                   </p>
                   <p className="text-xs text-gray-500">
-                    Supports: JPG, PNG, DICOM
+                    Supports: JPG, PNG
                   </p>
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
                     onChange={handleImageUpload}
                     className="hidden"
                   />
