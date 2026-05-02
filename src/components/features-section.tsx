@@ -137,7 +137,7 @@ const FeaturesSection = () => {
                     New Tool
                   </Badge>
                   <h3 className="text-2xl font-bold text-white mb-2">
-                    OCT Macular Hole Annotation Tool
+                    Macular Hole Annotation Tool
                   </h3>
                   <p className="text-slate-400 leading-relaxed max-w-xl">
                     Precisely measure and annotate macular holes on OCT B-scans. Calculate MHI, DHI, THI, HFF and Close Index indices with pixel-level accuracy. Get an instant surgical prognosis based on established clinical thresholds.

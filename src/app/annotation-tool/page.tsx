@@ -164,10 +164,6 @@ const OCT_CSS = `
   background: rgba(0,212,255,0.04);
 }
 
-.oct-app .upload-zone input[type=file] {
-  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-}
-
 .oct-app .upload-icon { width: 32px; height: 32px; margin: 0 auto 10px; color: var(--muted); }
 .oct-app .upload-text { font-size: 12px; color: var(--muted); }
 .oct-app .upload-text strong { display: block; color: var(--text); font-size: 13px; margin-bottom: 4px; }
@@ -428,6 +424,7 @@ const OCT_CSS = `
 export default function AnnotationToolPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fnRef = useRef<Record<string, (...args: any[]) => any>>({})
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const COLORS: Record<string, string> = {
@@ -922,7 +919,7 @@ export default function AnnotationToolPage() {
     }
 
     // Expose functions to JSX handlers
-    fnRef.current = { selectTool, calculateAll, undoLast, clearAll: () => clearAll(false), zoom, resetZoom, toggleOverlay, exportCanvas }
+    fnRef.current = { selectTool, calculateAll, undoLast, clearAll: () => clearAll(false), zoom, resetZoom, toggleOverlay, exportCanvas, loadImageFile }
 
     // Init
     resizeCanvas()
@@ -930,14 +927,6 @@ export default function AnnotationToolPage() {
     canvas.addEventListener('click', onCanvasClick)
     canvas.addEventListener('mousemove', onMouseMove)
     canvas.addEventListener('wheel', onWheel, { passive: false })
-
-    const fileInput = document.getElementById('fileInput') as HTMLInputElement | null
-    if (fileInput) {
-      fileInput.addEventListener('change', e => {
-        const f = (e.target as HTMLInputElement).files?.[0]
-        if (f) loadImageFile(f)
-      })
-    }
 
     const scaleInput = document.getElementById('scaleInput') as HTMLInputElement | null
     if (scaleInput) {
@@ -982,8 +971,8 @@ export default function AnnotationToolPage() {
                 </svg>
               </div>
               <div>
-                <div className="logo-text">RETINA·SCOPE</div>
-                <div className="logo-sub">OCT Macular Hole Analyser</div>
+                <div className="logo-text">MACULAR·HOLE</div>
+                <div className="logo-sub">Annotation Tool</div>
               </div>
             </div>
             <div className="header-right">
@@ -998,8 +987,23 @@ export default function AnnotationToolPage() {
               {/* UPLOAD */}
               <div className="panel-section">
                 <div className="panel-label">OCT Image</div>
-                <div className="upload-zone" id="uploadZone">
-                  <input type="file" id="fileInput" accept="image/*" />
+                <div
+                  className="upload-zone"
+                  id="uploadZone"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    id="fileInput"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (f) call('loadImageFile', f)
+                      e.target.value = ''
+                    }}
+                  />
                   <div className="upload-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <rect x="3" y="3" width="18" height="18" rx="2"/>
