@@ -12,6 +12,7 @@ const Navbar = () => {
 
   const navItems = [
     { name: 'Home', href: '/' },
+    { name: 'Annotation Tool', href: '/annotation-tool' },
     { name: 'Our Services', href: '/services' },
     { name: 'About Us', href: '/about' },
     { name: 'Research', href: '/research' },
