@@ -426,7 +426,8 @@ const OCT_CSS = `
 `
 
 export default function AnnotationToolPage() {
-  const fnRef = useRef<Record<string, (...args: unknown[]) => unknown>>({})
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fnRef = useRef<Record<string, (...args: any[]) => any>>({})
 
   useEffect(() => {
     const COLORS: Record<string, string> = {
@@ -962,7 +963,8 @@ export default function AnnotationToolPage() {
     }
   }, [])
 
-  const call = (name: string, ...args: unknown[]) => fnRef.current[name]?.(...args)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const call = (name: string, ...args: any[]) => fnRef.current[name]?.(...args)
 
   return (
     <>
