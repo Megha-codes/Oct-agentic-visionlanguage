@@ -971,8 +971,7 @@ export default function AnnotationToolPage() {
                 </svg>
               </div>
               <div>
-                <div className="logo-text">MACULAR·HOLE</div>
-                <div className="logo-sub">Annotation Tool</div>
+                <div className="logo-text">MACULAR·HOLE ANNOTATION TOOL</div>
               </div>
             </div>
             <div className="header-right">
