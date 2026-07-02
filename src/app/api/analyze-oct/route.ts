@@ -6,22 +6,33 @@ export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
 const INFERENCE_URL = process.env.INFERENCE_URL || "http://127.0.0.1:8001";
+// NOTE: gemini-1.5-flash has been retired by Google (returns 404 on
+// generateContent). Default to a current flash model; override via GEMINI_MODEL.
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
-const DISCLAIMER =
-  "This is an automated research/education aid, not a medical device or a " +
-  "diagnosis. Findings come from a multi-task model and were used to ground " +
-  "the summary; the scan image itself was not sent to the language model. " +
-  "Always confirm with a qualified ophthalmologist.";
+const DISCLAIMER = "Research pilot — not for clinical use";
+
+// Display labels for each task key returned by the inference service.
+const TASK_LABELS: Record<string, string> = {
+  vri: "Vitreoretinal Interface",
+  foveal: "Foveal Contour",
+  architecture: "Retinal Architecture",
+  rpe: "RPE / Choriocapillaris",
+};
 
 interface Finding {
   task: string;
-  task_label: string;
   prediction: string;
   confidence: number;
   uncertain: boolean;
   caveat: string | null;
-  probs?: Record<string, number>;
+  all_probs?: Record<string, number>;
+  // tolerated if the service ever includes it:
+  task_label?: string;
+}
+
+function labelFor(f: Finding): string {
+  return TASK_LABELS[f.task] || f.task_label || f.task;
 }
 
 function buildGroundingPrompt(findings: Finding[], userMessage: string): string {
@@ -33,7 +44,7 @@ function buildGroundingPrompt(findings: Finding[], userMessage: string): string 
     ]
       .filter(Boolean)
       .join("; ");
-    return `- ${f.task_label} (${f.task}): ${f.prediction} — confidence ${pct}%${
+    return `- ${labelFor(f)} (${f.task}): ${f.prediction} — confidence ${pct}%${
       flags ? ` [${flags}]` : ""
     }`;
   });
@@ -57,7 +68,7 @@ function fallbackReport(findings: Finding[]): string {
     const pct = Math.round(f.confidence * 100);
     const unc = f.uncertain ? " (uncertain)" : "";
     const cav = f.caveat ? ` Note: ${f.caveat}` : "";
-    return `${f.task_label}: ${f.prediction} — ${pct}% confidence${unc}.${cav}`;
+    return `${labelFor(f)}: ${f.prediction} — ${pct}% confidence${unc}.${cav}`;
   });
   return (
     "Automated summary (language model unavailable):\n" +

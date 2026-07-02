@@ -19,13 +19,23 @@ import { useRouter } from 'next/navigation'
 
 interface Finding {
   task: string
-  task_label: string
   prediction: string
   confidence: number
   uncertain: boolean
   caveat?: string | null
-  probs?: Record<string, number>
+  all_probs?: Record<string, number>
+  task_label?: string
 }
+
+// Display labels for each task key from the inference service.
+const TASK_LABELS: Record<string, string> = {
+  vri: 'Vitreoretinal Interface',
+  foveal: 'Foveal Contour',
+  architecture: 'Retinal Architecture',
+  rpe: 'RPE / Choriocapillaris',
+}
+
+const taskLabel = (f: Finding) => TASK_LABELS[f.task] || f.task_label || f.task
 
 interface Message {
   id: string
@@ -51,7 +61,7 @@ function FindingCards({ findings }: { findings: Finding[] }) {
             className="rounded-xl border border-gray-200 bg-white p-3 text-left"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-gray-500">{f.task_label}</span>
+              <span className="text-xs font-medium text-gray-500">{taskLabel(f)}</span>
               {f.uncertain && (
                 <Badge className="bg-amber-100 text-amber-800 border border-amber-200 text-[10px] px-1.5 py-0">
                   Uncertain
@@ -70,7 +80,7 @@ function FindingCards({ findings }: { findings: Finding[] }) {
               <span className="text-xs font-semibold text-gray-600 tabular-nums">{pct}%</span>
             </div>
             {f.caveat && (
-              <p className="mt-1.5 text-[11px] leading-snug text-amber-700">{f.caveat}</p>
+              <p className="mt-1.5 text-[11px] leading-snug text-gray-500">{f.caveat}</p>
             )}
           </div>
         )
