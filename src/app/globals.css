@@ -1,11 +1,27 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Force class-based dark mode so `dark:` utilities never trigger from the OS
+   `prefers-color-scheme`. The app is light-only, so with no `.dark` class on
+   the tree these utilities stay inert. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
+}
+
 /* Custom section background styles */
 .section-bg {
-  padding-top: 5rem;
-  padding-bottom: 5rem;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
   background: var(--background);
+}
+
+/* Formal modern display type for headings */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
 }
 
 :root {
@@ -86,5 +102,6 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
+    font-family: var(--font-sans);
   }
 }

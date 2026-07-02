@@ -32,6 +32,16 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...but keep the example template committable
+!.env.example
+
+# python inference service
+oct-backend/venv/
+inference_service/venv/
+inference_service/weights/*.pt
+inference_service/weights/*.pth
+__pycache__/
+*.pyc
 
 # vercel
 .vercel

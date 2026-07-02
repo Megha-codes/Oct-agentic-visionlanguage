@@ -1,0 +1,6 @@
+# Never commit model weights or virtualenvs
+weights/*.pt
+weights/*.pth
+venv/
+__pycache__/
+*.pyc

@@ -17,12 +17,66 @@ import ChatSidebar from '@/components/chat-sidebar'
 
 import { useRouter } from 'next/navigation'
 
+interface Finding {
+  task: string
+  task_label: string
+  prediction: string
+  confidence: number
+  uncertain: boolean
+  caveat?: string | null
+  probs?: Record<string, number>
+}
+
 interface Message {
   id: string
   type: 'user' | 'bot'
   content: string
   timestamp: Date
   image?: string
+  findings?: Finding[]
+  disclaimer?: string
+}
+
+const NORMAL_PREDICTIONS = new Set(['Normal', 'Not_disrupted'])
+
+function FindingCards({ findings }: { findings: Finding[] }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+      {findings.map((f) => {
+        const pct = Math.round(f.confidence * 100)
+        const isNormal = NORMAL_PREDICTIONS.has(f.prediction)
+        return (
+          <div
+            key={f.task}
+            className="rounded-xl border border-gray-200 bg-white p-3 text-left"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-gray-500">{f.task_label}</span>
+              {f.uncertain && (
+                <Badge className="bg-amber-100 text-amber-800 border border-amber-200 text-[10px] px-1.5 py-0">
+                  Uncertain
+                </Badge>
+              )}
+            </div>
+            <div
+              className={`font-display text-base font-bold ${
+                isNormal ? 'text-emerald-600' : 'text-purple-700'
+              }`}
+            >
+              {f.prediction.replace(/_/g, ' ')}
+            </div>
+            <div className="mt-1.5 flex items-center gap-2">
+              <Progress value={pct} className="h-1.5 flex-1" />
+              <span className="text-xs font-semibold text-gray-600 tabular-nums">{pct}%</span>
+            </div>
+            {f.caveat && (
+              <p className="mt-1.5 text-[11px] leading-snug text-amber-700">{f.caveat}</p>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 export default function ChatbotPage() {
@@ -36,7 +90,22 @@ export default function ChatbotPage() {
   const [analysisProgress, setAnalysisProgress] = useState(0)
   const [currentChatId, setCurrentChatId] = useState<string | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  // null = still checking, true = online, false = offline
+  const [modelOnline, setModelOnline] = useState<boolean | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Poll the inference service health via the Next.js proxy.
+  useEffect(() => {
+    let active = true
+    const check = () =>
+      fetch('/api/analyze-oct')
+        .then((r) => r.json())
+        .then((d) => { if (active) setModelOnline(!!d.online) })
+        .catch(() => { if (active) setModelOnline(false) })
+    check()
+    const id = setInterval(check, 30000)
+    return () => { active = false; clearInterval(id) }
+  }, [])
 
   // Initialize welcome message on client side only to prevent hydration issues
   useEffect(() => {
@@ -159,6 +228,8 @@ export default function ChatbotPage() {
       })
 
       if (!response.ok) {
+        // 502 from our route means the inference service is unreachable/down.
+        if (response.status === 502) setModelOnline(false)
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
@@ -168,14 +239,15 @@ export default function ChatbotPage() {
         throw new Error(data.error || 'Analysis failed')
       }
 
-      // Add follow-up questions to the analysis
-      const analysisWithFollowUp = data.analysis + generateFollowUpQuestions(data.analysis);
-      
+      setModelOnline(true)
+
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        content: analysisWithFollowUp,
-        timestamp: new Date()
+        content: data.report || 'Analysis complete.',
+        timestamp: new Date(),
+        findings: data.findings,
+        disclaimer: data.disclaimer,
       }
 
       setMessages(prev => [...prev, botMessage])
@@ -232,6 +304,17 @@ export default function ChatbotPage() {
           </Button>
         </div>
 
+        {/* Model service offline banner */}
+        {modelOnline === false && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+            <span>
+              <strong>Model service offline.</strong> Scan analysis is unavailable —
+              start the inference service (port 8001) and it will reconnect automatically.
+            </span>
+          </div>
+        )}
+
         {/* Mobile Header with Sidebar Toggle */}
         <div className="lg:hidden flex items-center justify-between mb-6">
           <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
@@ -282,8 +365,22 @@ export default function ChatbotPage() {
                     <div className="text-lg font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                       OCTina
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                       OCT Scan Analysis Assistant
+                      <span className="inline-flex items-center gap-1">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            modelOnline === null
+                              ? 'bg-gray-400'
+                              : modelOnline
+                              ? 'bg-emerald-500'
+                              : 'bg-red-500'
+                          }`}
+                        />
+                        <span className="text-[10px]">
+                          {modelOnline === null ? 'checking' : modelOnline ? 'online' : 'offline'}
+                        </span>
+                      </span>
                     </div>
                   </div>
                 </CardTitle>
@@ -332,11 +429,19 @@ export default function ChatbotPage() {
                                 />
                               </div>
                             )}
+                            {message.findings && message.findings.length > 0 && (
+                              <FindingCards findings={message.findings} />
+                            )}
                             <div className="whitespace-pre-wrap text-sm leading-relaxed max-h-80 overflow-y-auto pr-2">
                               {message.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').split('\n').map((line, i) => (
                                 <div key={i} dangerouslySetInnerHTML={{ __html: line }} className="mb-2" />
                               ))}
                             </div>
+                            {message.disclaimer && (
+                              <p className="mt-2 pt-2 border-t border-gray-200 text-[11px] leading-snug text-gray-500">
+                                {message.disclaimer}
+                              </p>
+                            )}
                             <div
                               className={`text-xs mt-2 opacity-70 ${
                                 message.type === 'user' ? 'text-purple-100' : 'text-gray-500'
@@ -384,7 +489,7 @@ export default function ChatbotPage() {
                     />
                     <Button
                       onClick={handleSendMessage}
-                      disabled={isAnalyzing || (!inputMessage.trim() && !selectedImage)}
+                      disabled={isAnalyzing || modelOnline === false || (!inputMessage.trim() && !selectedImage)}
                       className="self-end bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl transition-all duration-200 transform hover:scale-105"
                     >
                       <Send className="h-4 w-4" />

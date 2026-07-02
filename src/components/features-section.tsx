@@ -59,38 +59,38 @@ const FeaturesSection = () => {
   ]
 
   const stats = [
-    { icon: Clock, value: "3s", label: "Average Analysis Time", color: "text-purple-400" },
-    { icon: Target, value: "99.2%", label: "Accuracy Rate", color: "text-blue-400" },
-    { icon: Users, value: "10K+", label: "Medical Professionals", color: "text-green-400" },
-    { icon: Award, value: "Secure", label: "Data Protection", color: "text-orange-400" }
+    { icon: Clock, value: "3s", label: "Average Analysis Time", color: "text-purple-600" },
+    { icon: Target, value: "99.2%", label: "Accuracy Rate", color: "text-blue-600" },
+    { icon: Users, value: "10K+", label: "Medical Professionals", color: "text-green-600" },
+    { icon: Award, value: "Secure", label: "Data Protection", color: "text-orange-600" }
   ]
 
   return (
     <section className="section-bg">
       <div className="container mx-auto px-4">
         {/* Section Header */}
-        <div className="text-center mb-16">
-          <Badge variant="outline" className="mb-4 bg-purple-200 dark:bg-purple-900/20 text-purple-900 dark:text-purple-500 border-purple-800 dark:border-purple-900">
+        <div className="text-center mb-10">
+          <Badge variant="outline" className="mb-3 bg-purple-100 text-purple-800 border-purple-300">
             Advanced Features
           </Badge>
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <h2 className="font-display text-3xl md:text-4xl font-bold mb-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
             Why Choose OCTina?
           </h2>
-          <p className="text-lg text-gray-800 dark:text-gray-800 max-w-2xl mx-auto">
+          <p className="text-base text-gray-700 max-w-2xl mx-auto">
             Experience the perfect blend of cutting-edge AI technology and medical expertise designed for modern healthcare professionals.
           </p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           {stats.map((stat, index) => (
-            <Card key={index} className="bg-white dark:bg-gray-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <Card key={index} className="bg-white border-t-4 border-t-purple-500 border border-gray-100 shadow-sm">
               <CardContent className="p-6 text-center">
                 <stat.icon className={`w-8 h-8 mx-auto mb-3 ${stat.color}`} />
-                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                <div className="font-display text-3xl font-bold text-gray-900 mb-1">
                   {stat.value}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-sm text-gray-600">
                   {stat.label}
                 </div>
               </CardContent>
@@ -99,22 +99,22 @@ const FeaturesSection = () => {
         </div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => (
-            <Card 
-              key={index} 
-              className="group bg-white dark:bg-gray-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            <Card
+              key={index}
+              className="bg-white border border-gray-200 shadow-sm"
             >
               <CardHeader className="pb-4">
-                <div className={`w-12 h-12 bg-gradient-to-br ${feature.color} rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                <div className={`w-12 h-12 bg-gradient-to-br ${feature.color} rounded-lg flex items-center justify-center mb-4`}>
                   <feature.icon className="w-6 h-6 text-white" />
                 </div>
-                <CardTitle className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                <CardTitle className="font-display text-xl font-bold text-gray-900">
                   {feature.title}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                <p className="text-gray-600 leading-relaxed">
                   {feature.description}
                 </p>
               </CardContent>
@@ -123,7 +123,7 @@ const FeaturesSection = () => {
         </div>
 
         {/* Annotation Tool CTA */}
-        <div className="mt-16">
+        <div className="mt-10">
           <Card className="border-0 shadow-xl overflow-hidden bg-gradient-to-r from-slate-900 via-cyan-950 to-slate-900">
             <CardContent className="p-0">
               <div className="flex flex-col md:flex-row items-center gap-8 p-8 md:p-10">
@@ -136,7 +136,7 @@ const FeaturesSection = () => {
                   <Badge className="mb-3 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20">
                     New Tool
                   </Badge>
-                  <h3 className="text-2xl font-bold text-white mb-2">
+                  <h3 className="font-display text-2xl font-bold text-white mb-2">
                     Macular Hole Annotation Tool
                   </h3>
                   <p className="text-slate-400 leading-relaxed max-w-xl">
