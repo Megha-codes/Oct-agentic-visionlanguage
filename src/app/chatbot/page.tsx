@@ -14,6 +14,17 @@ import { Upload, Send, Bot, User, Eye, FileImage, Menu, MessageSquare, ArrowLeft
 import Navbar from '@/components/navbar'
 import Footer from '@/components/footer'
 import ChatSidebar from '@/components/chat-sidebar'
+import {
+  loadSessions,
+  saveSessions,
+  upsertSession,
+  deleteSession,
+  toggleStar,
+  deriveTitle,
+  newId,
+  type ChatSession,
+  type StoredMessage,
+} from '@/lib/chat-store'
 
 import { useRouter } from 'next/navigation'
 
@@ -58,29 +69,31 @@ function FindingCards({ findings }: { findings: Finding[] }) {
         return (
           <div
             key={f.task}
-            className="rounded-xl border border-gray-200 bg-white p-3 text-left"
+            className="min-w-0 rounded-xl border border-gray-200 bg-white p-3 text-left"
           >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-gray-500">{taskLabel(f)}</span>
+            <div className="flex items-start justify-between gap-1.5">
+              <span className="min-w-0 break-words text-xs font-medium text-gray-500 leading-tight">
+                {taskLabel(f)}
+              </span>
               {f.uncertain && (
-                <Badge className="bg-amber-100 text-amber-800 border border-amber-200 text-[10px] px-1.5 py-0">
+                <Badge className="shrink-0 bg-amber-100 text-amber-800 border border-amber-200 text-[10px] px-1.5 py-0">
                   Uncertain
                 </Badge>
               )}
             </div>
             <div
-              className={`font-display text-base font-bold ${
+              className={`font-display text-base font-bold break-words ${
                 isNormal ? 'text-emerald-600' : 'text-purple-700'
               }`}
             >
               {f.prediction.replace(/_/g, ' ')}
             </div>
             <div className="mt-1.5 flex items-center gap-2">
-              <Progress value={pct} className="h-1.5 flex-1" />
-              <span className="text-xs font-semibold text-gray-600 tabular-nums">{pct}%</span>
+              <Progress value={pct} className="h-1.5 flex-1 min-w-0" />
+              <span className="shrink-0 text-xs font-semibold text-gray-600 tabular-nums">{pct}%</span>
             </div>
             {f.caveat && (
-              <p className="mt-1.5 text-[11px] leading-snug text-gray-500">{f.caveat}</p>
+              <p className="mt-1.5 text-[11px] leading-snug text-gray-500 break-words">{f.caveat}</p>
             )}
           </div>
         )
@@ -102,7 +115,13 @@ export default function ChatbotPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   // null = still checking, true = online, false = offline
   const [modelOnline, setModelOnline] = useState<boolean | null>(null)
+  const [sessions, setSessions] = useState<ChatSession[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Load persisted chat history once on mount (client-only).
+  useEffect(() => {
+    setSessions(loadSessions())
+  }, [])
 
   // Poll the inference service health via the Next.js proxy.
   useEffect(() => {
@@ -144,6 +163,49 @@ export default function ChatbotPage() {
     }
   }
 
+  // ---- Chat history persistence (localStorage-backed) ----
+  const toStored = (m: Message): StoredMessage => ({
+    id: m.id,
+    type: m.type,
+    content: m.content,
+    timestamp: m.timestamp.toISOString(),
+    hasImage: !!m.image,
+    findings: m.findings,
+    disclaimer: m.disclaimer,
+  })
+
+  const fromStored = (s: StoredMessage): Message => ({
+    id: s.id,
+    type: s.type,
+    content: s.content,
+    timestamp: new Date(s.timestamp),
+    findings: s.findings as Finding[] | undefined,
+    disclaimer: s.disclaimer,
+    // image data URLs are not persisted (localStorage quota)
+  })
+
+  // Save the given conversation as a session; returns the (possibly new) id.
+  const persistChat = (msgs: Message[], chatId: string | null): string => {
+    const id = chatId ?? newId()
+    setSessions((prev) => {
+      const existing = prev.find((s) => s.id === id)
+      const firstUser = msgs.find((m) => m.type === 'user')
+      const nowIso = new Date().toISOString()
+      const session: ChatSession = {
+        id,
+        title: existing?.title || deriveTitle(firstUser?.content),
+        createdAt: existing?.createdAt || nowIso,
+        updatedAt: nowIso,
+        isStarred: existing?.isStarred ?? false,
+        messages: msgs.map(toStored),
+      }
+      const next = upsertSession(prev, session)
+      saveSessions(next)
+      return next
+    })
+    return id
+  }
+
   const handleNewChat = () => {
     setMessages([
       {
@@ -161,19 +223,32 @@ export default function ChatbotPage() {
   }
 
   const handleChatSelect = (chatId: string) => {
-    setCurrentChatId(chatId)
+    const session = sessions.find((s) => s.id === chatId)
+    if (session) {
+      setMessages(session.messages.map(fromStored))
+      setCurrentChatId(chatId)
+    }
+    setSelectedImage(null)
+    setImagePreview(null)
+    setInputMessage('')
     setIsSidebarOpen(false)
-    // Here you would typically load the chat history from the selected chat
   }
 
   const handleDeleteChat = (chatId: string) => {
-    // Here you would typically delete the chat from your backend
-    console.log('Deleting chat:', chatId)
+    setSessions((prev) => {
+      const next = deleteSession(prev, chatId)
+      saveSessions(next)
+      return next
+    })
+    if (chatId === currentChatId) handleNewChat()
   }
 
   const handleToggleStar = (chatId: string) => {
-    // Here you would typically toggle the star status in your backend
-    console.log('Toggling star for chat:', chatId)
+    setSessions((prev) => {
+      const next = toggleStar(prev, chatId)
+      saveSessions(next)
+      return next
+    })
   }
 
   // Function to generate follow-up questions based on context
@@ -260,7 +335,11 @@ export default function ChatbotPage() {
         disclaimer: data.disclaimer,
       }
 
-      setMessages(prev => [...prev, botMessage])
+      const finalMessages = [...messages, userMessage, botMessage]
+      setMessages(finalMessages)
+      // Persist this conversation to history (creates a session on first turn).
+      const savedId = persistChat(finalMessages, currentChatId)
+      if (!currentChatId) setCurrentChatId(savedId)
       setIsAnalyzing(false)
       setAnalysisProgress(100)
       
@@ -336,6 +415,7 @@ export default function ChatbotPage() {
             </SheetTrigger>
             <SheetContent side="left" className="w-[320px] p-0">
               <ChatSidebar
+                sessions={sessions}
                 currentChatId={currentChatId}
                 onChatSelect={handleChatSelect}
                 onNewChat={handleNewChat}
@@ -355,6 +435,7 @@ export default function ChatbotPage() {
           {/* Desktop Sidebar */}
           <div className="hidden lg:block lg:col-span-3">
             <ChatSidebar
+              sessions={sessions}
               currentChatId={currentChatId}
               onChatSelect={handleChatSelect}
               onNewChat={handleNewChat}
@@ -368,14 +449,14 @@ export default function ChatbotPage() {
             <Card className="h-[75vh] flex flex-col shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
               <CardHeader className="pb-3 border-b border-gray-200 dark:border-gray-700">
                 <CardTitle className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-linear-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 shrink-0 bg-linear-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
                     <Bot className="w-6 h-6 text-white" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-lg font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                       OCTina
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                       OCT Scan Analysis Assistant
                       <span className="inline-flex items-center gap-1">
                         <span
@@ -406,7 +487,7 @@ export default function ChatbotPage() {
                         }`}
                       >
                         <div
-                          className={`flex gap-2 max-w-[80%] ${
+                          className={`flex gap-2 max-w-[80%] min-w-0 ${
                             message.type === 'user' ? 'flex-row-reverse' : 'flex-row'
                           }`}
                         >
@@ -424,7 +505,7 @@ export default function ChatbotPage() {
                             )}
                           </div>
                           <div
-                            className={`rounded-2xl p-4 max-w-full overflow-hidden ${
+                            className={`rounded-2xl p-4 min-w-0 max-w-full overflow-hidden break-words ${
                               message.type === 'user'
                                 ? 'bg-linear-to-br from-purple-500 to-pink-500 text-white'
                                 : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
@@ -442,7 +523,7 @@ export default function ChatbotPage() {
                             {message.findings && message.findings.length > 0 && (
                               <FindingCards findings={message.findings} />
                             )}
-                            <div className="whitespace-pre-wrap text-sm leading-relaxed max-h-80 overflow-y-auto pr-2">
+                            <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
                               {message.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').split('\n').map((line, i) => (
                                 <div key={i} dangerouslySetInnerHTML={{ __html: line }} className="mb-2" />
                               ))}
@@ -555,8 +636,8 @@ export default function ChatbotPage() {
                         <span className="text-white text-sm font-medium">Click to analyze</span>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300">
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge variant="secondary" className="min-w-0 max-w-full truncate text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300">
                         {selectedImage?.name}
                       </Badge>
                       <Button
@@ -569,7 +650,7 @@ export default function ChatbotPage() {
                             fileInputRef.current.value = ''
                           }
                         }}
-                        className="text-xs"
+                        className="text-xs shrink-0"
                       >
                         Remove
                       </Button>

@@ -1,22 +1,15 @@
 'use client'
 
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Plus, MessageSquare, Trash2, Clock, Star } from 'lucide-react'
-
-interface ChatSession {
-  id: string
-  title: string
-  timestamp: Date
-  messageCount: number
-  isStarred: boolean
-}
+import type { ChatSession } from '@/lib/chat-store'
 
 interface ChatSidebarProps {
+  sessions: ChatSession[]
   currentChatId: string | null
   onChatSelect: (chatId: string) => void
   onNewChat: () => void
@@ -24,67 +17,24 @@ interface ChatSidebarProps {
   onToggleStar: (chatId: string) => void
 }
 
-const ChatSidebar = ({ 
-  currentChatId, 
-  onChatSelect, 
-  onNewChat, 
-  onDeleteChat, 
-  onToggleStar 
+const ChatSidebar = ({
+  sessions,
+  currentChatId,
+  onChatSelect,
+  onNewChat,
+  onDeleteChat,
+  onToggleStar,
 }: ChatSidebarProps) => {
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([
-    {
-      id: '1',
-      title: 'OCT Scan Analysis - Normal',
-      timestamp: new Date('2024-01-15T10:30:00'),
-      messageCount: 4,
-      isStarred: true
-    },
-    {
-      id: '2',
-      title: 'Macular Edema Consultation',
-      timestamp: new Date('2024-01-14T15:45:00'),
-      messageCount: 6,
-      isStarred: false
-    },
-    {
-      id: '3',
-      title: 'Diabetic Retinopathy Screening',
-      timestamp: new Date('2024-01-13T09:15:00'),
-      messageCount: 8,
-      isStarred: true
-    },
-    {
-      id: '4',
-      title: 'Glaucoma Assessment',
-      timestamp: new Date('2024-01-12T14:20:00'),
-      messageCount: 5,
-      isStarred: false
-    },
-    {
-      id: '5',
-      title: 'Post-operative Follow-up',
-      timestamp: new Date('2024-01-11T11:10:00'),
-      messageCount: 3,
-      isStarred: false
-    }
-  ])
+  const chatSessions = sessions
 
   const handleDeleteChat = (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation()
     onDeleteChat(chatId)
-    setChatSessions(prev => prev.filter(chat => chat.id !== chatId))
   }
 
   const handleToggleStar = (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation()
     onToggleStar(chatId)
-    setChatSessions(prev => 
-      prev.map(chat => 
-        chat.id === chatId 
-          ? { ...chat, isStarred: !chat.isStarred }
-          : chat
-      )
-    )
   }
 
   const formatDate = (date: Date) => {
@@ -146,7 +96,16 @@ const ChatSidebar = ({
             </div>
           )}
 
+          {/* Empty state */}
+          {chatSessions.length === 0 && (
+            <div className="text-center text-sm text-gray-500 py-8 px-2">
+              No chats yet. Upload an OCT scan to start your first analysis — it
+              will be saved here automatically.
+            </div>
+          )}
+
           {/* Recent Chats */}
+          {recentChats.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Clock className="w-4 h-4 text-gray-500" />
@@ -168,6 +127,7 @@ const ChatSidebar = ({
               ))}
             </div>
           </div>
+          )}
         </ScrollArea>
 
         <Separator className="my-4" />
@@ -232,19 +192,19 @@ const ChatItem = ({
           </div>
           <div className="flex items-center justify-between">
             <span className={`text-xs ${
-              isSelected 
-                ? 'text-purple-600 dark:text-purple-400' 
+              isSelected
+                ? 'text-purple-600 dark:text-purple-400'
                 : 'text-gray-500 dark:text-gray-400'
             }`}>
-              {formatDate(chat.timestamp)}
+              {formatDate(new Date(chat.updatedAt))}
             </span>
-            <Badge 
-              variant="secondary" 
+            <Badge
+              variant="secondary"
               className={`text-xs ${
                 isSelected ? 'bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-300' : ''
               }`}
             >
-              {chat.messageCount}
+              {chat.messages.length}
             </Badge>
           </div>
         </div>
